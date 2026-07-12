@@ -1,0 +1,11 @@
+[{:itonami.blueprint/id "cloud-itonami-isco-2519"
+  :itonami.blueprint/name "Community Software QA & Analysis"
+  :itonami.blueprint/isco-08 "2519"
+  :itonami.blueprint/domain :ict/software-qa
+  :itonami.blueprint/license "AGPL-3.0-or-later"
+  :itonami.blueprint/social-impact [:software-quality :local-jobs :open-tooling]
+  :itonami.blueprint/governor :applications-nec-governor
+  :itonami.blueprint/robotics true
+  :itonami.blueprint/required-technologies [:robotics :identity :forms :dmn :bpmn :audit-ledger]
+  :itonami.blueprint/status :public-oss
+  :db/id -1}]
