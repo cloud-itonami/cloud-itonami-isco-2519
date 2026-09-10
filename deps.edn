@@ -7,11 +7,31 @@
   ;; could not be linted at all -- across this fleet an absent or broken :lint
   ;; alias is what let misplaced docstrings, dead code and even a false-green
   ;; test verdict survive unreported (cloud-itonami-isic-561/563/920).
+  ;;
+  ;; KNOWN GAP, measured 2026-09-11 and NOT closed here. clj-kondo does not read
+  ;; `.kotoba` either, so since the rename this alias sees only
+  ;; test/run_suite.cljs. It reported `errors: 0, warnings: 0` in 10ms against
+  ;; 2 warnings in 1293ms one commit earlier -- the same shape :test had, where
+  ;; a check that inspected nothing returned what a clean check returns. The
+  ;; scratch tree run_suite.cljs stages is the obvious thing to point it at.
   :lint {:replace-deps {clj-kondo/clj-kondo {:mvn/version "2024.11.14"}}
          :main-opts    ["-m" "clj-kondo.main"
                         "--lint" "src" "test"
                         "--fail-level" "error"]}
-  :test {:extra-paths ["test"]
-         :extra-deps {io.github.cognitect-labs/test-runner
-                      {:git/tag "v0.5.1" :git/sha "dfb30dd6605cb6c0efc275e1df1736f6e90d4d73"}}
-         :main-opts ["-m" "cognitect.test-runner"]}}}
+
+  ;; This alias no longer runs the suite -- it refuses, loudly.
+  ;;
+  ;; The suite lives in `.kotoba` files, which clojure.tools.namespace does not
+  ;; scan, so `cognitect.test-runner` collected nothing here and reported
+  ;; `Ran 0 tests containing 0 assertions. 0 failures, 0 errors.` with exit 0 --
+  ;; the same value it gave for 15 green tests the commit before. Leaving the
+  ;; alias pointed at that runner would leave a documented command that answers
+  ;; `pass` without looking, which is the defect, not a symptom of it. Deleting
+  ;; the alias instead would drop `clojure -M:test` into a REPL, which is
+  ;; quieter still.
+  ;;
+  ;; The suite itself runs on nbb (ADR-2609070200 retires `clojure -M` for build
+  ;; and test): `nbb test/run_suite.cljs`.
+  :test {:main-opts
+         ["-e"
+          "(binding [*out* *err*] (println \"REFUSED: this suite lives in .kotoba files, which clojure.tools.namespace cannot see. Between 2026-09-10 and 2026-09-11 this command exited 0 having run zero tests. Run: nbb test/run_suite.cljs\")) (System/exit 2)"]}}}

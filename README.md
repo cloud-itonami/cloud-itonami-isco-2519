@@ -11,6 +11,30 @@ SoftwareDevNECGovernor as a langgraph StateGraph
 interrupt), modeled on cloud-itonami-isco-4311's bookkeeping actor.
 15 tests / 34 assertions green.
 
+## Running the suite
+
+```
+nbb test/run_suite.cljs
+```
+
+Not `clojure -M:test`. The sources here were renamed to `.kotoba` on
+2026-09-10 without their contents changing, and `.kotoba` is not an
+extension `clojure.tools.namespace` scans — so from that commit until
+2026-09-11 the documented command collected **zero tests and exited 0**,
+the same value it had given for 15 green tests the day before. The
+sentence above went on being published while nothing checked it. That
+alias now refuses (exit 2) instead of answering `pass` without looking.
+
+`test/run_suite.cljs` stages the `.kotoba` sources into a scratch tree as
+`.cljc` and runs them on nbb, resolving `langgraph`, `langchain` and
+`text` from the sibling west checkouts and naming which ones it used. It
+exits `0` only when the suite ran, met its floor and passed; `1` when
+something failed; and `2` when it could not measure — a missing
+dependency, no `*-test` namespace, no summary line, or **a run that came
+in under the count published above**. That count is the floor, which is
+why it is stated as a number: a suite that silently drops from 15 tests
+to 12 is refused rather than reported as green.
+
 The software HARD invariant — semver as arithmetic over a set diff:
 
 1. **Breaking change detection** — symbols removed from the

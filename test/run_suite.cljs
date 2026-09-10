@@ -1,0 +1,259 @@
+#!/usr/bin/env nbb
+(ns run-suite
+  "Execute this repository's suite and report how many tests actually ran.
+
+  ## Why this exists
+
+  On 2026-09-10 every Clojure source here was renamed to `.kotoba`
+  without a byte of its contents changing (73b5453). `.kotoba` is not an
+  extension `clojure.tools.namespace` scans, and that is what
+  `cognitect.test-runner` uses to find tests, so from that commit onward
+  the documented command reported:
+
+      $ clojure -M:test
+      Ran 0 tests containing 0 assertions.
+      0 failures, 0 errors.                       exit 0
+
+  One commit earlier the same command reported 15 tests / 34 assertions —
+  also exit 0. **A suite that could not run returned the same value as a
+  suite that ran and passed.** That is questions 2 and 4 of the eight in
+  CLAUDE.md, and nothing here could tell the two apart, so the break was
+  silent: README.md went on publishing its count while the semver
+  arithmetic this actor exists to enforce was checked by no one.
+
+  The same commit did it twice. `clojure -M:lint` went from 2 warnings in
+  1293ms to `errors: 0, warnings: 0` in 10ms, because clj-kondo does not
+  read `.kotoba` either. That hole is NOT closed here — see deps.edn.
+
+  ## What this does
+
+  Modeled on `orgs/cloud-itonami/actor-crew/scripts/run_contract_suite.cljs`,
+  which was written for this same defect the day it landed. The `.kotoba`
+  files are Clojure-shaped text, so they are copied into a scratch
+  directory under a `.cljc` extension and run on nbb. The repository is
+  only ever read. Nothing here claims the sources compile as Kotoba; it
+  claims only that the suite inside them still holds.
+
+  nbb rather than the JVM because ADR-2609070200 retires `clojure -M` for
+  build and test, and because CLAUDE.md ranks nbb above the JVM. Measured
+  2026-09-11: this suite gives the same 15 tests / 34 assertions on both.
+
+  ## What it adds to the precedent
+
+  actor-crew refuses when a run collects **zero** tests. That leaves the
+  more common regression open: a suite that quietly drops from 15 tests
+  to 1 still passes. So the floor here is the count README.md publishes.
+  There is exactly one place that number lives — the sentence readers
+  already trust — and this runner will not call a run a pass that came in
+  under it.
+
+  ## Exit contract
+
+    0  the suite ran, met the floor, and nothing failed
+    1  the suite ran and something failed or errored
+    2  REFUSED — could not measure: no test sources, no namespaces, a
+       missing dependency checkout, no floor published, no summary line,
+       or a run under the floor. Never a pass.
+
+  Usage:
+    nbb test/run_suite.cljs [--dep-src <name>=<path>] [--keep]"
+  (:require ["node:fs" :as fs]
+            ["node:os" :as os]
+            ["node:path" :as path]
+            ["node:child_process" :as cp]
+            [nbb.core :refer [*file*]]
+            [clojure.string :as str]))
+
+(def argv (vec (drop 2 (js->clj js/process.argv))))
+
+(def keep? (some? (some #{"--keep"} argv)))
+
+(def repo-root
+  ;; nbb is ESM, so there is no __filename; nbb.core/*file* is this script,
+  ;; which sits in test/.
+  (path/resolve (path/dirname (path/dirname *file*))))
+
+(def source-exts #{".kotoba" ".cljc" ".cljs" ".clj"})
+
+(def dependencies
+  "Sibling west checkouts this suite loads through. deps.edn pins
+  langgraph by sha, but that sha is what the JVM would have used and the
+  JVM cannot run these files at all, so what actually executes is the
+  checkout — and this runner says which one out loud rather than leaving
+  the reader to assume the pin was honoured."
+  [{:name "langgraph" :path ["kotoba-lang" "langgraph" "src"]
+    :probe ["langgraph" "graph.cljc"]}
+   {:name "langchain" :path ["kotoba-lang" "langchain" "src"]
+    :probe ["langchain" "runnable.cljc"]}
+   {:name "text" :path ["kotoba-lang" "text" "src"]
+    :probe ["kotoba" "lang" "text.cljc"]}])
+
+(defn- refuse [& msg]
+  (binding [*print-fn* *print-err-fn*]
+    (apply println "REFUSED:" msg))
+  (js/process.exit 2))
+
+(defn- walk [dir]
+  (if-not (fs/existsSync dir)
+    []
+    (mapcat (fn [entry]
+              (let [full (path/join dir (.-name entry))]
+                (if (.isDirectory entry) (walk full) [full])))
+            (fs/readdirSync dir #js {:withFileTypes true}))))
+
+(defn- sources-under [rel]
+  (->> (walk (path/join repo-root rel))
+       (filter #(source-exts (path/extname %)))
+       sort
+       vec))
+
+(defn- ns-of
+  "Read the namespace out of the file itself rather than deriving it from
+  the path. A file whose ns does not match its path would otherwise be
+  requested under a name nothing defines, and the run would report zero
+  tests — the very outcome this runner exists to refuse."
+  [file]
+  (second (re-find #"\(ns\s+([A-Za-z0-9_.*+!?<>=$&%'|-]+)"
+                   (fs/readFileSync file "utf8"))))
+
+(defn- test-namespaces
+  "Namespaces declared under test/ whose name ends in `-test`. Selecting
+  on the declared name keeps this runner, which lives beside them, out of
+  its own results without needing a filename exception."
+  [files]
+  (->> files (keep ns-of) (filter #(str/ends-with? % "-test")) distinct vec))
+
+(defn- dep-override [name]
+  (let [flag (str name "=")]
+    (some (fn [[a b]] (when (and (= a "--dep-src") (str/starts-with? b flag))
+                        (subs b (count flag))))
+          (partition 2 1 argv))))
+
+(defn- canonical-checkout
+  "Where this repository lives in the west layout. A linked worktree sits
+  outside `orgs/`, so siblings cannot be found relative to it — and the
+  mutation harness that proves this suite can fail runs exactly there.
+  `git rev-parse --git-common-dir` points back at the repository the
+  worktree belongs to."
+  []
+  (try
+    (let [out (str/trim (str (cp/execSync "git rev-parse --git-common-dir"
+                                          #js {:cwd repo-root :encoding "utf8"
+                                               :stdio #js ["ignore" "pipe" "ignore"]})))
+          gitdir (path/resolve repo-root out)]
+      (when (= ".git" (path/basename gitdir))
+        (path/dirname gitdir)))
+    (catch :default _ nil)))
+
+(def dep-roots
+  "Directories that may hold `<org>/<repo>/src`, most local first."
+  (->> [(path/resolve repo-root ".." "..")
+        (when-let [c (canonical-checkout)] (path/resolve c ".." ".."))]
+       (remove nil?) distinct vec))
+
+(defn- resolve-dep [{:keys [name path probe]}]
+  (or (dep-override name)
+      (some (fn [root]
+              (let [candidate (apply path/join root path)]
+                (when (fs/existsSync (apply path/join candidate probe)) candidate)))
+            dep-roots)
+      (refuse (str name " was not found under " (str/join " or " dep-roots)
+                   ". Inside the west workspace it is orgs/kotoba-lang/" name
+                   "/src — fetch it with `west update --fetch smart " name
+                   "`, or pass --dep-src " name "=<path>."))))
+
+(defn- published-floor
+  "The counts README.md publishes, which are this runner's floor. Refusing
+  when the sentence is gone is deliberate: a floor that silently becomes
+  zero is not a floor."
+  []
+  (let [readme (path/join repo-root "README.md")]
+    (when-not (fs/existsSync readme)
+      (refuse "README.md is missing, so there is no published count to hold the run to."))
+    (let [m (re-find #"(\d+)\s+tests?\s*/\s*(\d+)\s+assertions"
+                     (fs/readFileSync readme "utf8"))]
+      (when-not m
+        (refuse (str "README.md no longer states a `N tests / M assertions` claim. "
+                     "That sentence is the floor; without it a run of one test "
+                     "would pass.")))
+      (let [floor {:tests (parse-long (nth m 1)) :assertions (parse-long (nth m 2))}]
+        (when (zero? (:tests floor))
+          (refuse "README.md publishes zero tests, which no run can fail to meet."))
+        floor))))
+
+(defn- stage!
+  "Copy each `.kotoba` source into a scratch tree under `.cljc`. Only
+  `.kotoba` is copied; files that are still `.clj`/`.cljc`/`.cljs` are
+  reached from the repository itself, so this keeps working whichever way
+  the rename goes."
+  [scratch rel files]
+  (reduce (fn [n f]
+            (if (= ".kotoba" (path/extname f))
+              (let [relative (path/relative (path/join repo-root rel) f)
+                    target (path/join scratch rel (str/replace relative #"\.kotoba$" ".cljc"))]
+                (fs/mkdirSync (path/dirname target) #js {:recursive true})
+                (fs/copyFileSync f target)
+                (inc n))
+              n))
+          0 files))
+
+(defn -main []
+  (let [src-files (sources-under "src")
+        test-files (sources-under "test")
+        _ (when (empty? test-files)
+            (refuse "no test sources under test/ — there is nothing to measure."))
+        test-nses (test-namespaces test-files)
+        _ (when (empty? test-nses)
+            (refuse (str (count test-files) " file(s) under test/ but none declares "
+                         "a *-test namespace.")))
+        floor (published-floor)
+        deps (mapv (fn [d] [(:name d) (resolve-dep d)]) dependencies)
+        scratch (fs/mkdtempSync (path/join (os/tmpdir) "isco-2519-suite-"))]
+    (try
+      (let [staged (+ (stage! scratch "src" src-files) (stage! scratch "test" test-files))
+            classpath (str/join ":" (concat [(path/join scratch "src")
+                                             (path/join scratch "test")
+                                             (path/join repo-root "src")
+                                             (path/join repo-root "test")]
+                                            (map second deps)))
+            expr (str "(require " (str/join " " (map #(str "(quote [" % "])") test-nses))
+                      " (quote [cljs.test :as t])) "
+                      "(t/run-tests " (str/join " " (map #(str "(quote " % ")") test-nses)) ")")
+            res (cp/spawnSync "nbb" #js ["--classpath" classpath "-e" expr]
+                              #js {:encoding "utf8" :cwd repo-root})
+            out (str (.-stdout res) (.-stderr res))]
+        (println (str "SUITE src=" (count src-files) " test=" (count test-files)
+                      " staged=" staged " ns=" (str/join "," test-nses)))
+        (doseq [[n p] deps] (println (str "DEP   " n " " p)))
+        (println (str "FLOOR README.md publishes " (:tests floor) " tests / "
+                      (:assertions floor) " assertions"))
+        (println (str/trim out))
+        (when (.-error res)
+          (refuse "could not start nbb:" (.-message (.-error res))))
+        (let [ran (re-find #"Ran (\d+) tests containing (\d+) assertions" out)
+              verdict (re-find #"(\d+) failures, (\d+) errors" out)]
+          (when-not (and ran verdict)
+            (refuse (str "nbb produced no test summary (exit " (.-status res)
+                         "). The run cannot be called a pass.")))
+          (let [tests (parse-long (nth ran 1))
+                assertions (parse-long (nth ran 2))
+                failures (parse-long (nth verdict 1))
+                errors (parse-long (nth verdict 2))]
+            (println (str "RAN   tests=" tests " assertions=" assertions
+                          " failures=" failures " errors=" errors))
+            (when (< tests (:tests floor))
+              (refuse (str "only " tests " of the " (:tests floor)
+                           " tests README.md publishes ran. The suite went dark; "
+                           "it did not pass.")))
+            (when (< assertions (:assertions floor))
+              (refuse (str "only " assertions " of the " (:assertions floor)
+                           " assertions README.md publishes ran.")))
+            (if (pos? (+ failures errors))
+              (do (println "FAIL") (js/process.exit 1))
+              (println "PASS")))))
+      (finally
+        (if keep?
+          (println (str "KEPT  " scratch))
+          (fs/rmSync scratch #js {:recursive true :force true}))))))
+
+(-main)
