@@ -14,10 +14,10 @@ interrupt), modeled on cloud-itonami-isco-4311's bookkeeping actor.
 ## Running the suite
 
 ```
-nbb test/run_suite.cljk
+kbb --backend sci test/run_suite.cljk
 ```
 
-Not `clojure -M:test`. The sources here were renamed to `.kotoba` on
+Not `kbb -M:test`. The sources here were renamed to `.kotoba` on
 2026-09-10 without their contents changing, and `.kotoba` is not an
 extension `clojure.tools.namespace` scans — so from that commit until
 2026-09-11 the documented command collected **zero tests and exited 0**,
