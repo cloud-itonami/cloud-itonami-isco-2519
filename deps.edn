@@ -27,11 +27,11 @@
   ;; the same value it gave for 15 green tests the commit before. Leaving the
   ;; alias pointed at that runner would leave a documented command that answers
   ;; `pass` without looking, which is the defect, not a symptom of it. Deleting
-  ;; the alias instead would drop `clojure -M:test` into a REPL, which is
+  ;; the alias instead would drop `kbb -M:test` into a REPL, which is
   ;; quieter still.
   ;;
-  ;; The suite itself runs on nbb (ADR-2609070200 retires `clojure -M` for build
-  ;; and test): `nbb test/run_suite.cljk`.
+  ;; The suite itself runs on nbb (ADR-2609070200 retires `kbb -M` for build
+  ;; and test): `kbb --backend sci test/run_suite.cljk`.
   :test {:main-opts
          ["-e"
-          "(binding [*out* *err*] (println \"REFUSED: this suite lives in .kotoba files, which clojure.tools.namespace cannot see. Between 2026-09-10 and 2026-09-11 this command exited 0 having run zero tests. Run: nbb test/run_suite.cljk\")) (System/exit 2)"]}}}
+          "(binding [*out* *err*] (println \"REFUSED: this suite lives in .kotoba files, which clojure.tools.namespace cannot see. Between 2026-09-10 and 2026-09-11 this command exited 0 having run zero tests. Run: kbb --backend sci test/run_suite.cljk\")) (System/exit 2)"]}}}

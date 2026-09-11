@@ -1,4 +1,4 @@
-#!/usr/bin/env nbb
+#!/usr/bin/env kbb
 (ns run-suite
   "Execute this repository's suite and report how many tests actually ran.
 
@@ -10,7 +10,7 @@
   `cognitect.test-runner` uses to find tests, so from that commit onward
   the documented command reported:
 
-      $ clojure -M:test
+      $ kbb -M:test
       Ran 0 tests containing 0 assertions.
       0 failures, 0 errors.                       exit 0
 
@@ -21,7 +21,7 @@
   silent: README.md went on publishing its count while the semver
   arithmetic this actor exists to enforce was checked by no one.
 
-  The same commit did it twice. `clojure -M:lint` went from 2 warnings in
+  The same commit did it twice. `kbb -M:lint` went from 2 warnings in
   1293ms to `errors: 0, warnings: 0` in 10ms, because clj-kondo does not
   read `.kotoba` either. That hole is NOT closed here — see deps.edn.
 
@@ -34,7 +34,7 @@
   only ever read. Nothing here claims the sources compile as Kotoba; it
   claims only that the suite inside them still holds.
 
-  nbb rather than the JVM because ADR-2609070200 retires `clojure -M` for
+  nbb rather than the JVM because ADR-2609070200 retires `kbb -M` for
   build and test, and because CLAUDE.md ranks nbb above the JVM. Measured
   2026-09-11: this suite gives the same 15 tests / 34 assertions on both.
 
@@ -56,7 +56,7 @@
        or a run under the floor. Never a pass.
 
   Usage:
-    nbb test/run_suite.cljk [--dep-src <name>=<path>] [--keep]"
+    kbb --backend sci test/run_suite.cljk [--dep-src <name>=<path>] [--keep]"
   (:require ["node:fs" :as fs]
             ["node:os" :as os]
             ["node:path" :as path]
