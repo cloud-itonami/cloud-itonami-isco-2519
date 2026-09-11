@@ -14,7 +14,7 @@ interrupt), modeled on cloud-itonami-isco-4311's bookkeeping actor.
 ## Running the suite
 
 ```
-nbb test/run_suite.cljs
+nbb test/run_suite.cljk
 ```
 
 Not `clojure -M:test`. The sources here were renamed to `.kotoba` on
@@ -25,7 +25,7 @@ the same value it had given for 15 green tests the day before. The
 sentence above went on being published while nothing checked it. That
 alias now refuses (exit 2) instead of answering `pass` without looking.
 
-`test/run_suite.cljs` stages the `.kotoba` sources into a scratch tree as
+`test/run_suite.cljk` stages the `.kotoba` sources into a scratch tree as
 `.cljc` and runs them on nbb, resolving `langgraph`, `langchain` and
 `text` from the sibling west checkouts and naming which ones it used. It
 exits `0` only when the suite ran, met its floor and passed; `1` when
