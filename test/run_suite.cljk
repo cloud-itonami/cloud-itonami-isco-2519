@@ -56,7 +56,7 @@
        or a run under the floor. Never a pass.
 
   Usage:
-    nbb test/run_suite.cljs [--dep-src <name>=<path>] [--keep]"
+    nbb test/run_suite.cljk [--dep-src <name>=<path>] [--keep]"
   (:require ["node:fs" :as fs]
             ["node:os" :as os]
             ["node:path" :as path]

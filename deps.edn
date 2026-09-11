@@ -10,7 +10,7 @@
   ;;
   ;; KNOWN GAP, measured 2026-09-11 and NOT closed here. clj-kondo does not read
   ;; `.kotoba` either, so since the rename this alias sees only
-  ;; test/run_suite.cljs. It reported `errors: 0, warnings: 0` in 10ms against
+  ;; test/run_suite.cljk. It reported `errors: 0, warnings: 0` in 10ms against
   ;; 2 warnings in 1293ms one commit earlier -- the same shape :test had, where
   ;; a check that inspected nothing returned what a clean check returns. The
   ;; scratch tree run_suite.cljs stages is the obvious thing to point it at.
@@ -31,7 +31,7 @@
   ;; quieter still.
   ;;
   ;; The suite itself runs on nbb (ADR-2609070200 retires `clojure -M` for build
-  ;; and test): `nbb test/run_suite.cljs`.
+  ;; and test): `nbb test/run_suite.cljk`.
   :test {:main-opts
          ["-e"
-          "(binding [*out* *err*] (println \"REFUSED: this suite lives in .kotoba files, which clojure.tools.namespace cannot see. Between 2026-09-10 and 2026-09-11 this command exited 0 having run zero tests. Run: nbb test/run_suite.cljs\")) (System/exit 2)"]}}}
+          "(binding [*out* *err*] (println \"REFUSED: this suite lives in .kotoba files, which clojure.tools.namespace cannot see. Between 2026-09-10 and 2026-09-11 this command exited 0 having run zero tests. Run: nbb test/run_suite.cljk\")) (System/exit 2)"]}}}
