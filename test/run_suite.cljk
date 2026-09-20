@@ -73,7 +73,7 @@
   ;; which sits in test/.
   (path/resolve (path/dirname (path/dirname *file*))))
 
-(def source-exts #{".kotoba" ".cljc" ".cljs" ".clj"})
+(def source-exts #{".kotoba" ".cljc" ".cljk" ".clj"})
 
 (def dependencies
   "Sibling west checkouts this suite loads through. deps.edn pins
