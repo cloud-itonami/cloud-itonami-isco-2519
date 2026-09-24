@@ -14,7 +14,7 @@
 | `:bench-to-chamber-run` | transport | AMR がボードトレーを作業台からバーンイン槽の部屋へ運ぶ | 1 区間の所要時間 | 40 s（estimate） |
 
 測定の入口: `kbb -M:physics`。全 run が数値を返さなければ exit 2 = **測れなかった**（「異常なし」ではない）。
-test: `kbb -M:physai-test`（`test/softdev/physics_spec_test.cljk` が physics.edn の妥当性と全 run の計測を検査する）。
+test: `kbb -M:physai-test`（`test-physai/softdev/physics_spec_test.cljk` が physics.edn の妥当性と全 run の計測を検査する）。
 この repo 自身の `:test` は `.kotoba` の suite 用で kbb では走らない（意図的に拒否する）。この bot の test 数は physics の test だけを数える。
 
 ## 測って分かったこと・限界（成長の第一候補）

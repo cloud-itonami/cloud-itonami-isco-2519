@@ -12,7 +12,7 @@ io.github.kotoba-lang/langgraph
   :physics {:main-opts ["-m" "kotoba.robotics.process.probe"]}
   ;; kbb -M:physai-test -> the .cljk tests under test/ on kbb's runner (the
   ;; physical-AI bot's test count). :test stays the .kotoba suite's own entry.
-  :physai-test {:extra-paths ["test"] :main-opts ["-m" "cognitect.test-runner"]}
+  :physai-test {:extra-paths ["test" "test-physai"] :main-opts ["-m" "cognitect.test-runner"]}
 
   ;; clj-kondo from deps (no binary), errors fail CI. Added because this repo
   ;; could not be linted at all -- across this fleet an absent or broken :lint
