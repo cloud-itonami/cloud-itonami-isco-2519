@@ -1,0 +1,33 @@
+;; What this vertical's robot physically does, declared for
+;; kotoba.robotics.process (kotoba-lang/robotics). `kbb -M:physics` runs it.
+;;
+;; ISCO 2519, software and applications developers and analysts n.e.c.. The README calls this pure-cognitive work with no robotics
+;; gate; blueprint.edn nevertheless declares :itonami.blueprint/robotics true.
+;; The physical work declared here is the handling the occupation itself
+;; entails (ASSUMPTION, not stated in the README): moving embedded boards into the burn-in chamber rack, and carrying a board tray between the ESD bench and the chamber.
+;; Replace with the README premise once one is written.
+;;
+;; Every number without a cited source is marked `estimate` in its :basis.
+;; Replacing an estimate with a sourced value is this bot's growth work.
+{:physics/schema "itonami.physical-ai.spec.v1"
+ :repo "cloud-itonami/cloud-itonami-isco-2519"
+ :cases
+ [{:id :board-tray-into-burn-in-rack
+   :kind :manipulator
+   :procedure "arm slides a tray of embedded boards from the ESD bench into the upper slot of the burn-in chamber rack"
+   :params {:l1-m 0.45 :l2-m 0.40 :m1-kg 3.5 :m2-kg 2.5
+            :from [0.50 -0.10] :to [0.30 0.60] :duration-s 2.0 :steps 500}
+   :sweep {:param :payload-kg :values [0.5 1.5 3.0 4.5 6.0]}
+   :quantity :peak-tau1-nm
+   :limit {:max 60.0 :basis "estimate: continuous shoulder torque of a light collaborative arm (~5 kg class)"}
+   :boundary {:lo 0.1 :hi 30.0}}
+  {:id :bench-to-chamber-run
+   :kind :transport
+   :procedure "AMR carries board trays from the ESD bench to the burn-in chamber room"
+   :params {:mass-kg 30.0 :payload-kg 15.0 :v-max-mps 0.8 :a-max-mps2 0.3
+            :brake-decel-mps2 0.5 :drive-force-n 50.0 :crr 0.02
+            :cog-height-m 0.55 :support-half-length-m 0.22}
+   :sweep {:param :distance-m :values [10.0 20.0 30.0 45.0 60.0]}
+   :quantity :cycle-time-s
+   :limit {:max 40.0 :basis "estimate: boards should reach the chamber within 40 s so the chamber door is not held open long"}
+   :boundary {:lo 2.0 :hi 150.0}}]}
