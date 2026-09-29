@@ -1,7 +1,7 @@
 (ns softdev.governor
   "SoftwareDevNECGovernor — the independent safety/traceability layer
   for the ISCO-08 2519 community software-development (NEC) actor
-  (itonami actor pattern, ADR-2607011000 / CLAUDE.md Actors section).
+  (itonami actor pattern, ADR-2607011000 / AGENTS.md Actors section).
   Modeled on cloud-itonami-isco-4311's bookkeeping.governor. Software
   twist: a breaking change is a NON-EMPTY SET DIFFERENCE between the
   registered API surface and the proposed one, and the version bump it

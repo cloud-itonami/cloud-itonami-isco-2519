@@ -17,7 +17,7 @@
   One commit earlier the same command reported 15 tests / 34 assertions —
   also exit 0. **A suite that could not run returned the same value as a
   suite that ran and passed.** That is questions 2 and 4 of the eight in
-  CLAUDE.md, and nothing here could tell the two apart, so the break was
+  AGENTS.md, and nothing here could tell the two apart, so the break was
   silent: README.md went on publishing its count while the semver
   arithmetic this actor exists to enforce was checked by no one.
 
@@ -35,7 +35,7 @@
   claims only that the suite inside them still holds.
 
   nbb rather than the JVM because ADR-2609070200 retires `kbb -M` for
-  build and test, and because CLAUDE.md ranks nbb above the JVM. Measured
+  build and test, and because AGENTS.md ranks nbb above the JVM. Measured
   2026-09-11: this suite gives the same 15 tests / 34 assertions on both.
 
   ## What it adds to the precedent
